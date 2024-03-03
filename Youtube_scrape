@@ -1,3 +1,5 @@
+#webscrape of MkBHD youtube channel using google API client
+
 import googleapiclient.discovery
 import pandas as pd
 api_service_name = "youtube"
@@ -36,3 +38,96 @@ get_channel_stats(youtube,channel_ids)
 channels_stats=get_channel_stats(youtube,channel_ids)
 channel_data=pd.DataFrame(channels_stats)
 channel_data
+
+#----------------------------------------------------------------------------------------
+youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
+
+playlist_id='UUBJycsmduvYEL83R_U4JriQ'
+
+def get_vid_ids(youtube,playlist_id):
+
+    request = youtube.playlistItems().list(part='snippet,contentDetails',playlistId=playlist_id
+                                           ,maxResults=50
+                                      )
+    response = request.execute()
+    response
+
+    num=0
+    more_pages=True
+    next_page_token=response.get('nextPageToken')
+    video_ids=[]
+    while more_pages==True:
+        if next_page_token==None:
+            more_pages==False
+            break
+
+        else:
+            for i in range(len(response['items'])):
+                video_ids.append(response['items'][i]['contentDetails']['videoId'])
+
+            next_page_token=response.get('nextPageToken')
+
+            request = youtube.playlistItems().list(part='snippet,contentDetails',
+                                                   playlistId=playlist_id,
+                                                   pageToken=next_page_token,
+                                                   maxResults=50
+                                      )
+            response = request.execute()
+
+    return video_ids
+
+get_vid_ids(youtube,playlist_id)
+
+#get video details
+
+youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
+#retrieve video_ids from previous code^^ 
+
+video_ids=get_vid_ids(youtube,playlist_id)
+
+
+
+request = youtube.videos().list(part='snippet,statistics',id=','.join(video_ids)#,pageToken=next_page_token
+                                       )
+def get_vid_deets(youtube,video_ids):
+    
+    all_vid_stats=[]
+    for i in range(0,len(video_ids),50):
+        request = youtube.videos().list(part='snippet,statistics',id=','.join(video_ids[i:i+50]))#,pageToken=next_page_token
+        response=request.execute()
+        
+        for video in response['items']:
+            deets=dict(Title=video['snippet']['title'],
+                       Published_date=video['snippet']['publishedAt'],
+                       Views=video['statistics'].get('viewCount'),
+                       Likes=video['statistics'].get('likeCount'),
+                       Comments=video['statistics'].get('commentCount'))
+                       
+                       #likes=video['statistics']['likeCount'],
+                       #comments=video['statistics']['commentCount']
+                      
+
+            all_vid_stats.append(deets)
+                                    
+    
+    return all_vid_stats
+
+get_vid_deets(youtube,video_ids)
+
+video_details=get_vid_deets(youtube,video_ids)
+video_data=pd.DataFrame(video_details)
+pd.set_option('display.max.rows',2000)
+
+video_data['Published_date']=pd.to_datetime(video_data['Published_date']).dt.date
+video_data['Likes']=pd.to_numeric(video_data['Likes'])
+video_data['Views']=pd.to_numeric(video_data['Views'])
+video_data['Comments']=pd.to_numeric(video_data['Comments'])
+
+video_data
+
+#visualisation of video statistics
+
+import seaborn as sns
+
+ax1=sns.lineplot(x='Published_date',y='Views',data=video_data
+
