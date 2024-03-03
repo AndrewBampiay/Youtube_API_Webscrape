@@ -1,0 +1,38 @@
+import googleapiclient.discovery
+import pandas as pd
+api_service_name = "youtube"
+api_version = "v3"
+api_key='AIzaSyArLZf95SPV8qRcCUMkqJIhB21XiK5b7Lg'
+
+youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key)
+
+channel_id=['UCBJycsmduvYEL83R_U4JriQ']#mkbhd
+
+channel_ids=['UCBJycsmduvYEL83R_U4JriQ', #mkbhd
+             'UCIrrRLyFMVmmL9NDAU2obJA', # supersaf
+             'UC2Xd-TjJByJyK2w1zNwY0zQ', #beyond fireship
+             'UCMiJRAwDNSNzuYeN2uWa0pA', #mrwhosetheboss
+             'UCfuwnVrJuKnqb-2hQZbctsQ' #createdByElla
+            ]
+data_list=[]
+def get_channel_stats(youtube,channel_ids):
+
+    request = youtube.channels().list(part='snippet,contentDetails,statistics',id=','.join(channel_ids))
+
+    response = request.execute()
+
+    data_list=[]
+
+    for i in range(len(response['items'])):
+        data=dict(channel_name=response['items'][i]['snippet']['title'],
+         video_count=response['items'][i]['statistics']['videoCount'],
+         subscribers=response['items'][i]['statistics']['subscriberCount'],
+         view_count=response['items'][i]['statistics']['viewCount'])
+        data_list.append(data)
+    return data_list
+
+get_channel_stats(youtube,channel_ids)
+
+channels_stats=get_channel_stats(youtube,channel_ids)
+channel_data=pd.DataFrame(channels_stats)
+channel_data
